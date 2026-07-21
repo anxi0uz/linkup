@@ -4,3 +4,7 @@ class EmailAlreadyRegisteredError(Exception):
 
 class InvalidRefreshTokenError(Exception):
     pass
+
+
+class InvalidCredentialsError(Exception):
+    pass

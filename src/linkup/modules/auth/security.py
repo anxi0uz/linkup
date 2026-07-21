@@ -4,6 +4,7 @@ from uuid import UUID
 import jwt
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
+from starlette.concurrency import run_in_threadpool
 
 from linkup.core.config import get_settings
 
@@ -12,15 +13,22 @@ settings = get_settings()
 password_hash = PasswordHash.recommended()
 
 
-def hash_password(password: str) -> str:
-    return password_hash.hash(password)
+async def hash_password(password: str) -> str:
+    return await run_in_threadpool(
+        password_hash.hash,
+        password,
+    )
 
 
-def verify_password(
+async def verify_password(
     plain_password: str,
     hashed_password: str,
 ) -> bool:
-    return password_hash.verify(plain_password, hashed_password)
+    return await run_in_threadpool(
+        password_hash.verify,
+        plain_password,
+        hashed_password,
+    )
 
 
 def create_access_token(user_id: UUID) -> str:

@@ -3,6 +3,9 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from structlog.contextvars import bind_contextvars
 
 from linkup.api.dependencies import SessionDep
 from linkup.models.user import User
@@ -30,7 +33,9 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from error
 
-    user = await db.get(User, user_id)
+    user = await db.scalar(
+        select(User).options(selectinload(User.profile)).where(User.id == user_id)
+    )
 
     if user is None or not user.is_active:
         raise HTTPException(
@@ -38,6 +43,9 @@ async def get_current_user(
             detail="User not found or inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    bind_contextvars(
+        user_id=str(user.id),
+    )
 
     return user
 
