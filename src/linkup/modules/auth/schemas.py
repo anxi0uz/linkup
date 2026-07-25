@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from linkup.modules.profiles.schemas import ProfileResponse
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -11,17 +13,6 @@ class RegisterRequest(BaseModel):
 
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-
-
-class ProfileResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    first_name: str
-    last_name: str
-    headline: str | None
-    about: str | None
-    location: str | None
-    avatar_url: str | None
 
 
 class UserResponse(BaseModel):
