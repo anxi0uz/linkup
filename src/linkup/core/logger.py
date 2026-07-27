@@ -2,15 +2,16 @@ import logging
 import sys
 
 import structlog
+from structlog.typing import Processor
 
 
 def configure_loggin(debug: bool) -> None:
-    renderer = (
+    renderer: Processor = (
         structlog.dev.ConsoleRenderer(colors=True)
         if debug
         else structlog.processors.JSONRenderer()
     )
-    processors = [
+    processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(
