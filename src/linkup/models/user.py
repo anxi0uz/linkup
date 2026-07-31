@@ -8,6 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from linkup.db.base import Base
 
 if TYPE_CHECKING:
+    from linkup.models.company import Company
+    from linkup.models.post import Post
     from linkup.models.profile import Profile
 
 
@@ -39,6 +41,18 @@ class User(Base):
         back_populates="user",
         cascade="save-update, merge, delete, delete-orphan",
         single_parent=True,
+        passive_deletes=True,
+        lazy="raise",
+    )
+
+    owned_companies: Mapped[list["Company"]] = relationship(
+        back_populates="owner",
+        passive_deletes=True,
+        lazy="raise",
+    )
+
+    posts: Mapped[list["Post"]] = relationship(
+        back_populates="author",
         passive_deletes=True,
         lazy="raise",
     )

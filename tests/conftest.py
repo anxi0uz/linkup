@@ -11,11 +11,12 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-import linkup.models
+import linkup.models  # noqa: F401
 from linkup.db.base import Base
 from linkup.db.redis import get_redis
 from linkup.db.session import get_session
 from linkup.main import app
+from tests.support import RegisteredUser, RegisterUser
 
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
@@ -113,3 +114,35 @@ async def client(
             yield http_client
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def register_user(
+    client: AsyncClient,
+) -> RegisterUser:
+    async def register_user_impl(
+        email: str,
+        password: str = "test-password",
+        first_name: str = "Test",
+        last_name: str = "User",
+    ) -> RegisteredUser:
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": email,
+                "password": password,
+                "first_name": first_name,
+                "last_name": last_name,
+            },
+        )
+        assert response.status_code == 201
+
+        payload = response.json()
+
+        return RegisteredUser(
+            id=payload["user"]["id"],
+            email=payload["user"]["email"],
+            access_token=payload["access_token"],
+        )
+
+    return register_user_impl

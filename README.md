@@ -25,6 +25,8 @@ friendly runtime foundation.
 - refresh-session revocation on logout;
 - authenticated current-user endpoint;
 - profile lookup and partial profile updates;
+- company creation and owner-managed company profiles;
+- personal and company posts with ownership checks and filtering;
 - async SQLAlchemy sessions and PostgreSQL migrations;
 - structured development and JSON production logs;
 - request IDs propagated through logs and response headers;
@@ -65,6 +67,8 @@ src/
 │   │   ├── redis.py
 │   │   └── session.py
 │   ├── models/
+│   │   ├── company.py
+│   │   ├── post.py
 │   │   ├── profile.py
 │   │   └── user.py
 │   ├── modules/
@@ -76,11 +80,9 @@ src/
 │   │   │   ├── schemas.py
 │   │   │   ├── security.py
 │   │   │   └── service.py
+│   │   ├── companies/
+│   │   ├── posts/
 │   │   └── profiles/
-│   │       ├── exceptions.py
-│   │       ├── router.py
-│   │       ├── schemas.py
-│   │       └── service.py
 │   └── main.py
 └── migrations/
 ```
@@ -223,6 +225,49 @@ Profile updates use PATCH semantics: omitted fields remain unchanged, nullable
 fields can be cleared with `null`, and `first_name` or `last_name` cannot be set
 to `null`.
 
+### Companies
+
+| Method | Path | Authentication | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/companies` | Bearer token | Create a company owned by the current user |
+| `GET` | `/api/v1/companies` | Bearer token | List companies with limit/offset pagination |
+| `GET` | `/api/v1/companies/{company_id}` | Bearer token | Return a company by UUID |
+| `PATCH` | `/api/v1/companies/{company_id}` | Owner | Partially update a company |
+| `DELETE` | `/api/v1/companies/{company_id}` | Owner | Delete a company and its posts |
+
+Company slugs are normalized to lowercase and must be globally unique.
+
+### Posts
+
+| Method | Path | Authentication | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/posts` | Bearer token | Create a personal or company post |
+| `GET` | `/api/v1/posts` | Bearer token | List posts with pagination and optional author/company filters |
+| `GET` | `/api/v1/posts/{post_id}` | Bearer token | Return a post by UUID |
+| `PATCH` | `/api/v1/posts/{post_id}` | Author | Update post content |
+| `DELETE` | `/api/v1/posts/{post_id}` | Author | Delete a post |
+
+Passing `company_id` creates a company post and requires the current user to own
+that company. Omitting it creates a personal post.
+
+## Tests
+
+Start the isolated test infrastructure:
+
+```bash
+podman-compose -f compose.test.yaml up -d
+```
+
+Run the integration suite:
+
+```bash
+uv run pytest
+```
+
+Tests exercise the complete ASGI application against PostgreSQL and Redis on
+ports `5433` and `6380`. The test database schema and Redis state are reset for
+each scenario.
+
 ## Database migrations
 
 Create a migration after changing SQLAlchemy models:
@@ -257,15 +302,14 @@ available.
 ## Roadmap
 
 - professional connections and connection requests;
-- posts, reactions, comments, and a personalized feed;
+- reactions, comments, and a personalized feed;
 - user and content search;
 - work experience, education, and skills;
 - avatar and media uploads;
-- integration test suite;
 - Prometheus metrics;
 - Loki log aggregation and Grafana dashboards.
 
 ## Project status
 
-LinkUp is under active development. Authentication and profile management are
-implemented; the professional-networking domain is the next stage.
+LinkUp is under active development. Authentication, profiles, companies, posts,
+and their integration test coverage are implemented.

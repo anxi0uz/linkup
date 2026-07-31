@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from tests.support import RegisterUser
+
 pytestmark = pytest.mark.anyio
 
 
@@ -57,3 +59,27 @@ async def test_user_can_update_and_read_profile(
     assert stored_profile["first_name"] == "Updated"
     assert stored_profile["headline"] == "tester"
     assert stored_profile["location"] == "Helsinki"
+
+
+async def test_profile_validation_not_found_and_authentication(
+    client: AsyncClient,
+    register_user: RegisterUser,
+) -> None:
+    user = await register_user("profile@example.com")
+
+    null_name_response = await client.patch(
+        "/api/v1/profile/me",
+        headers=user.headers,
+        json={"first_name": None},
+    )
+    missing_profile_response = await client.get(
+        "/api/v1/profile/00000000-0000-0000-0000-000000000000",
+        headers=user.headers,
+    )
+    unauthenticated_response = await client.get(
+        f"/api/v1/profile/{user.id}",
+    )
+
+    assert null_name_response.status_code == 422
+    assert missing_profile_response.status_code == 404
+    assert unauthenticated_response.status_code == 401
